@@ -37,10 +37,12 @@ jobs:
               - 'admin.driftdine.com/**'
               - 'deploy/backend.sh'
               - 'deploy/_lib.sh'
+              - '.github/workflows/ci-cd.yml'
             frontend:
               - 'frontend/**'
               - 'deploy/frontend.sh'
               - 'deploy/_lib.sh'
+              - '.github/workflows/ci-cd.yml'
 
   # ───────────────────────── CI: frontend ─────────────────────────
   frontend:
@@ -93,13 +95,13 @@ jobs:
           JWT_SECRET: ci-only-secret
 
   # ───────────────────────── CD ─────────────────────────
-  # Deploys only when the repository variable DEPLOY_ENABLED is "true",
-  # so merging this file can never push to the server by accident.
+  # Deploys on every push to main. To pause deployments set the repository
+  # variable DEPLOY_ENABLED to "false".
   deploy:
     needs: [changes, frontend, backend]
     if: >-
       github.event_name != 'pull_request' &&
-      vars.DEPLOY_ENABLED == 'true' &&
+      vars.DEPLOY_ENABLED != 'false' &&
       github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production

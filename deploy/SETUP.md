@@ -6,7 +6,7 @@ Pipeline file: `.github/workflows/ci-cd.yml`
 |---|---|---|
 | `frontend` | every push / PR | `npm ci`, typecheck, production build, uploads `dist` |
 | `backend` | every push / PR | `npm ci`, syntax check, loads the Express app |
-| `deploy` | push to `main` **only if** repo variable `DEPLOY_ENABLED=true` | uploads backend → `/var/www/admin.driftdine.com` and restarts PM2 `admin-driftdine`; uploads frontend build → `/var/www/driftdine.com/dist` |
+| `deploy` | push to `main` (pause by setting repo variable `DEPLOY_ENABLED=false`) | uploads backend → `/var/www/admin.driftdine.com` and restarts PM2 `admin-driftdine`; uploads frontend build → `/var/www/driftdine.com/dist` |
 
 Only the part that changed is deployed. Run it by hand from **Actions → CI / CD → Run workflow** (choose both / backend / frontend).
 
