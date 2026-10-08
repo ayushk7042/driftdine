@@ -1,0 +1,23 @@
+# dependencies & builds
+node_modules/
+dist/
+build/
+.vite/
+
+# secrets — never commit real env files
+.env
+.env*
+!.env.example
+
+# OS / editor junk
+.DS_Store
+__MACOSX/
+*.log
+
+# reference screenshots and design mock-ups dropped into public/ (not used by the site)
+frontend/public/hero.png
+frontend/public/breaking.png
+frontend/public/Futuristic*
+frontend/public/Driftline*
+frontend/public/Screenshot*
+admin.driftdine.com/public/Driftdine Brand Identity Showcase*
