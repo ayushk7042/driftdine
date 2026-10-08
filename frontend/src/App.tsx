@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { SiteLayout } from "@/site/SiteLayout";
 import { PageLoader } from "@/components/ui";
 import Home from "@/pages/site/Home";
+import { PageViewTracker } from "@/lib/analytics";
 
 /* Everything except the homepage is split out so the first paint stays small. */
 const NewsList = lazy(() => import("@/pages/site/NewsList"));
@@ -26,6 +27,8 @@ const AdminApp = lazy(() => import("@/admin/AdminApp"));
 
 export default function App() {
   return (
+    <>
+    <PageViewTracker />
     <Routes>
       <Route path="/admin/*" element={<Suspense fallback={<PageLoader />}><AdminApp /></Suspense>} />
       <Route element={<SiteLayout />}>
@@ -48,5 +51,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </>
   );
 }
