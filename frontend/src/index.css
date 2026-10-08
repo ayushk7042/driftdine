@@ -69,6 +69,7 @@
 }
 
 :root {
+  --ad-tint: #eef6ef; /* light brand tint behind ads that do not fill their box */
   --bg: #f6f6f1;
   --surface: #ffffff;
   --surface-2: #eff1ea;
@@ -84,6 +85,7 @@
 }
 
 .dark {
+  --ad-tint: #0a1f17; /* dark card colour */
   --bg: #06150f;
   --surface: #0a1f17;
   --surface-2: #0f2b20;

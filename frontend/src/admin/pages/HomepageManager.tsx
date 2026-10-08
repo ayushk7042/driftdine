@@ -285,7 +285,7 @@ export default function HomepageManager() {
   const patch = (p: Partial<State>) => { setS({ ...s, ...p }); setDirty(true); };
   const setGallery = (g: Partial<Gallery>) => patch({ gallery: { ...s.gallery, ...g } });
   const g = s.gallery;
-  const positions = (ads.data?.positions || []).filter((p) => p.startsWith("home-gallery"));
+  const positions = (ads.data?.positions || []).filter((p) => p === "home-gallery-left" || p === "home-gallery-right");
   const disabled = !can("canPublish");
 
   return (

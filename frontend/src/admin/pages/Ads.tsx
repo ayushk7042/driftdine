@@ -13,8 +13,12 @@ import { ImageField } from "../MediaPicker";
 import { useCategoryOptions } from "../pickers";
 import { fromLocalInput, toLocalInput } from "../hooks";
 import { useSeo } from "@/lib/seo";
+import { AD_GROUP_LABEL, AD_POSITION_KEYS, AD_SPECS } from "@/lib/adSpecs";
 
 const DEVICES = ["desktop", "tablet", "mobile"] as const;
+
+/** Positions offered in the panel: the documented placements, in spec order. */
+const allowed = (fromApi: string[], current: string) => AD_POSITION_KEYS.filter((k) => fromApi.includes(k) || k === current);
 
 interface AdForm {
   name: string; position: string; type: "image" | "script"; display: "banner" | "frame"; maxHeight: string;
@@ -58,7 +62,16 @@ function AdModal({ ad, positions, onClose, onSaved }: { ad: Ad | null; positions
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name *"><Input value={f.name} onChange={(e) => set("name", e.target.value)} autoFocus /></Field>
-              <Field label="Position *"><Select value={f.position} onChange={(e) => set("position", e.target.value)}>{positions.map((p) => <option key={p}>{p}</option>)}</Select></Field>
+              <Field label="Position *" hint={AD_SPECS[f.position] ? `${AD_SPECS[f.position].where}. Artwork: ${AD_SPECS[f.position].artwork}.` : undefined}>
+                <Select value={f.position} onChange={(e) => set("position", e.target.value)}>
+                  {(["A", "B", "C", "D"] as const).map((g) => (
+                    <optgroup key={g} label={AD_GROUP_LABEL[g]}>
+                      {allowed(positions, f.position).filter((p) => AD_SPECS[p]?.group === g).map((p) => <option key={p} value={p}>{p}</option>)}
+                    </optgroup>
+                  ))}
+                  {!AD_SPECS[f.position] && f.position && <option value={f.position}>{f.position} (legacy)</option>}
+                </Select>
+              </Field>
               <Field label="Type"><Select value={f.type} onChange={(e) => set("type", e.target.value as AdForm["type"])}><option value="image">Image banner</option><option value="script">Script / HTML (AdSense, GAM…)</option></Select></Field>
               <Field label="Status"><Select value={f.status} onChange={(e) => set("status", e.target.value as AdForm["status"])}><option value="active">Active</option><option value="paused">Paused</option></Select></Field>
             </div>
@@ -68,7 +81,7 @@ function AdModal({ ad, positions, onClose, onSaved }: { ad: Ad | null; positions
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Destination URL"><Input type="url" value={f.targetUrl} onChange={(e) => set("targetUrl", e.target.value)} placeholder="https://" /></Field>
                   <Field label="Display" hint="Banner keeps proportions; Frame holds the slot size."><Select value={f.display} onChange={(e) => set("display", e.target.value as AdForm["display"])}><option value="banner">Banner (natural size)</option><option value="frame">Frame (fixed slot)</option></Select></Field>
-                  <Field label="Max height (px)" hint="Optional cap, up to 1200."><Input type="number" min={0} max={1200} value={f.maxHeight} onChange={(e) => set("maxHeight", e.target.value)} /></Field>
+                  <Field label="Max height (px)" hint="Optional. Replaces this placement’s standard height for this booking only (up to 1200)."><Input type="number" min={0} max={1200} value={f.maxHeight} onChange={(e) => set("maxHeight", e.target.value)} /></Field>
                   <div className="self-end"><Toggle label="Open in new tab" checked={f.openInNewTab} onChange={(v) => set("openInNewTab", v)} /></div>
                 </div>
               </>
@@ -151,7 +164,7 @@ export default function Ads() {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Select className="w-auto" value={position} onChange={(e) => setPosition(e.target.value)}><option value="all">All positions</option>{positions.map((p) => <option key={p}>{p}</option>)}</Select>
+        <Select className="w-auto" value={position} onChange={(e) => setPosition(e.target.value)}><option value="all">All positions</option>{allowed(positions, "").map((p) => <option key={p}>{p}</option>)}</Select>
         <Select className="w-auto" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">Any status</option><option value="active">Active</option><option value="paused">Paused</option></Select>
       </div>
 
@@ -160,7 +173,7 @@ export default function Ads() {
       ) : (
         <div className="space-y-6">
           {grouped.map(([pos, ads]) => (
-            <Panel key={pos} title={<span className="font-mono text-sm">{pos}</span>} description={`${ads.length} creative${ads.length > 1 ? "s" : ""}`}>
+            <Panel key={pos} title={<span className="font-mono text-sm">{pos}</span>} description={`${AD_SPECS[pos]?.where ? AD_SPECS[pos].where + " · " : ""}${ads.length} creative${ads.length > 1 ? "s" : ""}${ads.length > 1 ? " — rotates every 7 s" : ""}`}>
               <ul className="divide-y divide-line">
                 {ads.map((a) => {
                   const ctr = a.impressions ? (((a.clicks || 0) / a.impressions) * 100).toFixed(2) : "0.00";

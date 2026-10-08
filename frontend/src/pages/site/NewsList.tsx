@@ -121,7 +121,7 @@ export default function NewsList() {
       </header>
 
       <div className={cn(wrap, "pb-4 pt-5")}>
-        <AdSlot position="home-top" className="mb-5" />
+        <AdSlot position="category-top" className="mb-5" />
 
         {/* trending strip */}
         {!filtered && page === 1 && !!trending.data?.data.length && (

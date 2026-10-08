@@ -33,9 +33,11 @@ exports.serveAds = async (req, res) => {
 
     const ads = await Advertisement.find(query)
       .sort({ priority: -1, createdAt: -1 })
-      .limit(20)
+      // No position asked for = the whole site's bookings in one call (the web app loads them
+      // once, before the first paint, so no slot can resize when its ad arrives later).
+      .limit(position ? 20 : 300)
       .select(
-        "name position type display maxHeight image scriptCode targetUrl openInNewTab devices"
+        "name position type display maxHeight image scriptCode targetUrl openInNewTab devices categories priority"
       )
       .lean();
 

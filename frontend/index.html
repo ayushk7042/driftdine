@@ -33,9 +33,15 @@
       // page views are sent per route by the app (single-page site), so the automatic one is off
       gtag('config', 'G-SMPX6C10XN', { send_page_view: false });
     </script>
+    <style>
+      #root > .boot { min-height: 100vh; display: grid; place-items: center; background: #f6f6f1; }
+      .dark #root > .boot { background: #06150f; }
+      #root > .boot img { width: 56px; height: auto; animation: bootpulse 1.4s ease-in-out infinite; }
+      @keyframes bootpulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot"><img src="/mark.webp" alt="Driftdine" width="56" height="55" /></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

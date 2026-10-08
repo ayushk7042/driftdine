@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
 import { ToastProvider } from "@/components/Toast";
 import { ApiError } from "@/lib/api";
+import { primeAds } from "@/lib/adsStore";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -20,6 +21,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// First visit: wait for the ad bookings so no slot resizes after the first paint (repeat visits use the cache).
+await primeAds(queryClient);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

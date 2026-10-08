@@ -17,7 +17,7 @@ export function SiteLayout() {
         <Suspense fallback={<PageLoader />}><Outlet /></Suspense>
       </main>
       <Footer />
-      <div className="sticky bottom-0 z-40 sm:hidden"><AdSlot position="mobile-sticky-bottom" label={false} className="bg-bg/90 p-1 backdrop-blur" /></div>
+      <div className="sticky bottom-0 z-40 lg:hidden"><AdSlot position="mobile-sticky-bottom" className="bg-bg/95 px-2 pb-1 pt-1 backdrop-blur" /></div>
     </div>
   );
 }

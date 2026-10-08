@@ -1,8 +1,8 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
 import { useCategoryTree, useHomeFeed, useHomepage } from "@/site/queries";
-import { AdSlot, ImageAd, ScriptAd, useAdFor } from "@/site/AdSlot";
+import { AdSlot, AdSlotView, useAds } from "@/site/AdSlot";
 import { NewsletterForm } from "@/site/Newsletter";
 import { HeroSection } from "@/site/Hero";
 import { HeroSectionV1 } from "@/site/Hero.backup";
@@ -16,7 +16,7 @@ import { GridSkeleton } from "@/site/cards";
 import { ErrorState } from "@/components/ui";
 import { useSeo } from "@/lib/seo";
 import { articleHref, asObj, cn, dateOf, compact, fmtDate, img, isExternal } from "@/lib/utils";
-import type { Article, Category, Gallery, GalleryRail, GalleryItem, HomeFeed, Homepage, Rail } from "@/lib/types";
+import type { Ad, Article, Category, Gallery, GalleryRail, GalleryItem, HomeFeed, Homepage, Rail } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
 /* Curation helpers                                                    */
@@ -43,10 +43,13 @@ function resolveRail(rail: Rail | undefined, fallback: Article[], size: number):
 /* Snap Wall (gallery) — 2x2 tiles, optional ad/banner rails           */
 /* ------------------------------------------------------------------ */
 
-const RAIL_SPAN = {
-  one: { narrow: "lg:col-span-3", medium: "lg:col-span-4", wide: "lg:col-span-5" },
-  two: { narrow: "lg:col-span-2", medium: "lg:col-span-3", wide: "lg:col-span-4" },
-};
+/** Columns (of 12) a rail takes. With a rail on each side the tiles keep at least a third of the row. */
+const RAIL_COLS = {
+  one: { narrow: 3, medium: 4, wide: 5 },
+  two: { narrow: 3, medium: 3, wide: 4 },
+} as const;
+// static class names so Tailwind can see them
+const COL_SPAN: Record<number, string> = { 3: "lg:col-span-3", 4: "lg:col-span-4", 5: "lg:col-span-5", 6: "lg:col-span-6", 7: "lg:col-span-7", 9: "lg:col-span-9", 12: "lg:col-span-12" };
 
 /** Bento slots: tile 1 is the big one, tile 2 is wide, the rest are single cells. */
 const TILE_SLOT = ["col-span-2 row-span-2", "col-span-2", "", ""];
@@ -81,38 +84,25 @@ function WallTile({ item, article, slot = "" }: { item?: GalleryItem; article?: 
     : <Link to={link} className={cls}>{inner}</Link>;
 }
 
-function RailBox({ rail, side }: { rail: GalleryRail; side: "left" | "right" }) {
-  const ad = useAdFor(rail.adPosition, undefined, rail.enabled && rail.type === "ad");
-  if (!rail.enabled) return null;
-  const fixed = rail.size !== "auto" ? { aspectRatio: rail.size.replace("x", " / ") } : undefined;
-
-  let body: ReactNode = null;
-  if (rail.type === "ad" && ad) body = ad.type === "script" ? <ScriptAd ad={ad} /> : <ImageAd ad={ad} position={rail.adPosition} />;
-  if (rail.type === "banner" && rail.image) {
-    const pic = <img src={img(rail.image, 600)} alt={rail.imageAlt || rail.heading} loading="lazy" decoding="async" className="h-auto w-full rounded-2xl object-cover" />;
-    body = rail.link
-      ? <a href={rail.link} target={rail.openInNewTab ? "_blank" : undefined} rel="noopener noreferrer sponsored">{pic}</a>
-      : pic;
+/** A rail on the Snap Wall: a booked ad, or the static banner stored on the homepage document. */
+function useRail(rail: GalleryRail, side: "left" | "right") {
+  const position = rail.adPosition || (side === "left" ? "home-gallery-left" : "home-gallery-right");
+  const wantsAd = rail.enabled && rail.type !== "banner"; // "ad" is the default booking type
+  const { ads, pending } = useAds(position, undefined, wantsAd);
+  let list: Ad[] = ads;
+  if (rail.enabled && rail.type === "banner" && rail.image) {
+    list = [{ _id: `banner-${side}`, name: rail.heading || "Banner", position, type: "image", display: "banner",
+      image: { url: rail.image, alt: rail.imageAlt }, targetUrl: rail.link, openInNewTab: rail.openInNewTab, status: "active" }];
   }
-  if (!body) return null;
-  return (
-    <aside data-side={side} className={cn("flex flex-col justify-start", rail.stretch && "lg:h-full")} style={fixed} aria-label="Sponsored">
-      {rail.heading && <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">{rail.heading}</p>}
-      {body}
-    </aside>
-  );
+  return { position, ads: list, pending, show: rail.enabled && list.length > 0 };
 }
 
 function SnapWall({ gallery, fallback }: { gallery?: Gallery; fallback: Article[] }) {
   const g = gallery;
-  const leftAd = useAdFor(g?.rails.left.adPosition || "", undefined, !!g?.rails.left.enabled && g?.rails.left.type === "ad");
-  const rightAd = useAdFor(g?.rails.right.adPosition || "", undefined, !!g?.rails.right.enabled && g?.rails.right.type === "ad");
+  const none: GalleryRail = { enabled: false, width: "narrow", type: "ad", size: "auto", adPosition: "", heading: "", image: "", imageAlt: "", link: "", openInNewTab: true, stretch: false };
+  const L = useRail(g?.rails.left || none, "left");
+  const R = useRail(g?.rails.right || none, "right");
   if (!g || g.enabled === false) return null;
-
-  const has = (r: GalleryRail, ad: unknown) => r.enabled && (r.type === "ad" ? !!ad : !!r.image);
-  const left = has(g.rails.left, leftAd);
-  const right = has(g.rails.right, rightAd);
-  const both = left && right;
 
   const manual = g.source === "manual" && g.items.length > 0;
   const tiles = manual
@@ -120,7 +110,14 @@ function SnapWall({ gallery, fallback }: { gallery?: Gallery; fallback: Article[
     : fallback.slice(0, 4).map((a, i) => <WallTile key={a._id} article={a} slot={TILE_SLOT[i]} />);
   if (!tiles.length) return null;
 
-  const span = (r: GalleryRail) => (both ? RAIL_SPAN.two : RAIL_SPAN.one)[r.width];
+  // Don't lay the row out until both rail bookings are known, otherwise the tiles would
+  // render full width and get squeezed when the ads arrive.
+  const waiting = L.pending || R.pending;
+  const both = L.show && R.show;
+  const any = L.show || R.show;
+  const cols = (r: GalleryRail, on: boolean) => (on ? (both ? RAIL_COLS.two : RAIL_COLS.one)[r.width] : 0);
+  const lc = cols(g.rails.left, L.show), rc = cols(g.rails.right, R.show);
+  const tileCols = 12 - lc - rc;
 
   return (
     <section className="container-x mt-12" aria-label={g.title}>
@@ -139,13 +136,21 @@ function SnapWall({ gallery, fallback }: { gallery?: Gallery; fallback: Article[
             </Link>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-12">
-            {left && <div className={span(g.rails.left)}><RailBox rail={g.rails.left} side="left" /></div>}
-            <div className={cn(left && right ? "lg:col-span-8" : left || right ? "lg:col-span-9" : "lg:col-span-12")}>
-              <div className="grid auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[170px] sm:grid-cols-4 lg:auto-rows-[190px] xl:auto-rows-[210px]">{tiles}</div>
+          {waiting ? (
+            <div className="skeleton min-h-[360px] rounded-2xl !bg-white/5 sm:min-h-[460px] lg:min-h-[420px]" aria-hidden />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-12">
+              {L.show && <div className={cn("order-2 lg:order-1", COL_SPAN[lc])}><AdSlotView ads={L.ads} position={L.position} /></div>}
+              <div className={cn("order-1 lg:order-2", COL_SPAN[tileCols])}>
+                {/* with rails the tile block stretches to exactly the rail height (CSS, no measuring) */}
+                <div className={cn(
+                  "grid auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[170px] sm:grid-cols-4",
+                  any ? "lg:h-full lg:auto-rows-auto lg:grid-rows-[repeat(3,minmax(0,1fr))]" : "lg:auto-rows-[190px] xl:auto-rows-[210px]"
+                )}>{tiles}</div>
+              </div>
+              {R.show && <div className={cn("order-3", COL_SPAN[rc])}><AdSlotView ads={R.ads} position={R.position} /></div>}
             </div>
-            {right && <div className={span(g.rails.right)}><RailBox rail={g.rails.right} side="right" /></div>}
-          </div>
+          )}
         </div>
       </div>
     </section>
@@ -293,32 +298,31 @@ export default function Home() {
 
   return (
     <>
+      <div className="container-x mt-3"><AdSlot position="home-top" /></div>
       {HERO_VERSION === "v1" ? <HeroSectionV1 lead={c.lead} left={c.heroLeft} right={c.heroRight} breaking={c.breaking} loading={feedQ.isLoading || homeQ.isLoading} /> : <HeroSection lead={c.lead} left={c.heroLeft} right={c.heroRight} breaking={c.breaking} loading={feedQ.isLoading || homeQ.isLoading} />}
       <div className="container-x mt-4"><AdSlot position="home-hero" /></div>
-      <div className="container-x mt-4"><AdSlot position="home-top" /></div>
       <EditorsBlock slides={c.slider} grid={c.editorsGrid} eyebrow={home?.editorsText?.eyebrow} title={home?.editorsText?.title} subtitle={home?.editorsText?.subtitle} />
       {strip?.enabled !== false && <CategoryStrip items={stripItems} eyebrow={strip?.eyebrow} title={strip?.title} subtitle={strip?.subtitle} buttonLabel={strip?.buttonLabel} />}
       <InFocusBlock items={c.inFocus} eyebrow={home?.inFocusText?.eyebrow} title={home?.inFocusText?.title} subtitle={home?.inFocusText?.subtitle} />
-      <div className="container-x mt-6"><AdSlot position="home-infeed" /></div>
 
       {loading ? (
         <div className="container-x mt-24"><GridSkeleton n={6} /></div>
       ) : (
         <>
-          <div className="container-x mt-10"><AdSlot position="home-mid" /></div>
-          <div className="container-x mt-6"><AdSlot position="home-gallery" /></div>
           <SnapWall gallery={home?.gallery} fallback={c.wall} />
+          <div className="container-x mt-6"><AdSlot position="home-mid" /></div>
           {sections.map(({ s, cat }) => {
             const lead = asObj<Article>(s.trending as Article | string | undefined) as Article | undefined;
             const subs = (s.subTrending || []).filter((x): x is Article => typeof x === "object");
             return <CategoryRow key={cat._id} category={cat} items={[...(lead ? [lead] : []), ...subs].map((x) => ({ ...x, category: cat }))} />;
           })}
           {autoCats.map((cat, i) => <CategoryRow key={cat._id} category={cat} items={(autoRows[i]?.data?.data || []).map((x) => ({ ...x, category: cat }))} />)}
+          <div className="container-x mt-8"><AdSlot position="home-infeed" /></div>
           <MoreStoriesBlock items={c.more} />
-          <div className="container-x mt-16"><AdSlot position="home-bottom" /></div>
         </>
       )}
       <NewsletterBand />
+      <div className="container-x mt-8"><AdSlot position="home-bottom" /></div>
     </>
   );
 }

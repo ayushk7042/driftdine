@@ -120,7 +120,7 @@ export function ArticleListPage({ eyebrow, title, description, fixed = {}, filte
             {items.map((a, i) => (
               <div key={a._id} className="contents">
                 <NewsCard a={a} />
-                {i === 5 && adPosition && <div className="col-span-2 md:col-span-3 xl:col-span-4"><AdSlot position={adPosition === "category-top" ? "category-infeed" : "home-infeed"} category={adCategory} /></div>}
+                {i === 5 && adPosition && <div className="col-span-2 md:col-span-3 xl:col-span-4"><AdSlot position="category-infeed" category={adCategory} /></div>}
               </div>
             ))}
           </div>

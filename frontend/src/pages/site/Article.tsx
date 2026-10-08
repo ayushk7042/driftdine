@@ -504,6 +504,8 @@ export default function ArticlePage() {
           <span className="max-w-[60vw] truncate text-fg/60 sm:max-w-md">{a.title}</span>
         </nav>
 
+        <AdSlot position="article-top" category={cat?._id} className="mb-4" />
+
         {/* badges */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {cat && <Link to={categoryHref(cat)}><Chip className="gradient-brand text-[#04140d] shadow-sm hover:brightness-105">{cat.name}</Chip></Link>}
@@ -538,8 +540,6 @@ export default function ArticlePage() {
         {/* two columns */}
         <div className="mt-6 grid gap-8 xl:grid-cols-[minmax(0,1fr)_430px] xl:gap-10">
           <div className="min-w-0">
-            <AdSlot position="article-top" category={cat?._id} className="mb-5" />
-
             <figure className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
               {fi?.url
                 ? <LinkedImg link={fi.redirectUrl} newTab={fi.openInNewTab}><img src={img(fi.url, 1400)} alt={fi.alt || a.title} width={fi.width} height={fi.height} fetchPriority="high" decoding="async" className="aspect-[16/9] w-full object-cover sm:aspect-[16/8.4]" /></LinkedImg>
@@ -669,13 +669,13 @@ export default function ArticlePage() {
           <aside className="space-y-6 xl:sticky xl:top-[88px] xl:self-start" aria-label="Sidebar">
             <AdSlot position="article-sidebar-top" category={cat?._id} />
             <div className="hidden xl:block"><Toc toc={prepared.toc} /></div>
+            <AdSlot position="article-sidebar-middle" category={cat?._id} />
             <PopularNow />
             <SideNewsletter />
             <MoreInCategory cat={cat} exclude={a._id} />
-            <AdSlot position="article-sidebar-middle" category={cat?._id} />
-            <AdSlot position="sidebar" category={cat?._id} />
-            <AdSlot position="sidebar-sticky" category={cat?._id} />
             <AdSlot position="article-sidebar-bottom" category={cat?._id} />
+            <AdSlot position="sidebar" category={cat?._id} />
+            <AdSlot position="sidebar-sticky" category={cat?._id} className="xl:sticky xl:top-[88px]" />
           </aside>
         </div>
       </article>

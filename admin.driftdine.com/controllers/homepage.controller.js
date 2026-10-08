@@ -147,7 +147,7 @@ function sanitizeGallery(input, keepRefs = false) {
  *
  * `keepRefs` is the read path: items stay as their populated documents.
  */
-function sanitizeRail(input, key, keepRefs = false) {
+function sanitizeCuratedRail(input, key, keepRefs = false) {
   const raw = input && typeof input === "object" ? input : {};
   const limit = RAIL_LIMITS[key] || 6;
 
@@ -176,7 +176,7 @@ function sanitizeRail(input, key, keepRefs = false) {
 function sanitizeSections(input, keepRefs = false) {
   const source = input && typeof input === "object" ? input : {};
   return RAIL_KEYS.reduce((acc, key) => {
-    acc[key] = sanitizeRail(source[key], key, keepRefs);
+    acc[key] = sanitizeCuratedRail(source[key], key, keepRefs);
     return acc;
   }, {});
 }
