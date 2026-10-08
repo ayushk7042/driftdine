@@ -150,10 +150,10 @@ function Slider({ slides }: { slides: Article[] }) {
 
       {/* text */}
       <div key={a._id} className="relative flex animate-fade-up flex-col justify-between gap-3 bg-gradient-to-br from-forest-900 to-forest-950 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-leaf-400">Editor’s pick</p>
+        <div className="flex items-center justify-between gap-2 max-xl:flex-wrap sm:flex-nowrap">
+          <p className="hidden whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-leaf-400 sm:block xl:hidden 2xl:block">Editor’s pick</p>
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-semibold tabular-nums text-white/80" aria-live="polite">{i + 1} / {n}</span>
+            <span className="whitespace-nowrap text-[12px] font-semibold tabular-nums text-white/80" aria-live="polite">{i + 1} / {n}</span>
             <button className={nav} onClick={() => go(-1)} aria-label="Previous story"><ArrowLeft className="size-4" /></button>
             <button className={nav} onClick={() => go(1)} aria-label="Next story"><ArrowRight className="size-4" /></button>
           </div>
