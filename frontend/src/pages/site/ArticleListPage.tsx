@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal, X } from "lucide-react";
 import { newsApi, type NewsQuery } from "@/lib/endpoints";
-import { ArticleCard, GridSkeleton } from "@/site/cards";
+import { NewsCard, NewsCardSkeleton } from "@/site/NewsCard";
 import { AdSlot } from "@/site/AdSlot";
 import { useCategoryTree } from "@/site/queries";
 import { Pagination } from "@/components/Pagination";
@@ -112,15 +112,15 @@ export function ArticleListPage({ eyebrow, title, description, fixed = {}, filte
         </div>
       )}
 
-      {isLoading ? <GridSkeleton n={6} /> : isError ? <ErrorState error={error} onRetry={refetch} /> : !items.length ? (
+      {isLoading ? <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <NewsCardSkeleton key={i} />)}</div> : isError ? <ErrorState error={error} onRetry={refetch} /> : !items.length ? (
         <EmptyState title="Nothing here yet" text={emptyText || "No stories match these filters. Try widening your search."} />
       ) : (
         <div className={cn("transition-opacity", isFetching && "opacity-60")}>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
             {items.map((a, i) => (
               <div key={a._id} className="contents">
-                <ArticleCard article={a} priority={i < 3} />
-                {i === 5 && adPosition && <div className="sm:col-span-2 lg:col-span-3"><AdSlot position={adPosition === "category-top" ? "category-infeed" : "home-infeed"} category={adCategory} /></div>}
+                <NewsCard a={a} />
+                {i === 5 && adPosition && <div className="col-span-2 md:col-span-3 xl:col-span-4"><AdSlot position={adPosition === "category-top" ? "category-infeed" : "home-infeed"} category={adCategory} /></div>}
               </div>
             ))}
           </div>

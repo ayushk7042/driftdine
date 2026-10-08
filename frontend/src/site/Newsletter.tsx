@@ -22,7 +22,7 @@ export function NewsletterForm({ source = "footer", dark = false, compact = fals
       <div className={`flex ${compact ? "flex-col" : "flex-col sm:flex-row"} gap-2`}>
         <input
           type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" aria-label="Email address"
-          className={`h-12 min-w-0 ${compact ? "shrink-0" : "flex-1"} rounded-full border px-5 text-sm focus:outline-none focus:ring-2 focus:ring-leaf-500/40 ${dark ? "border-white/15 bg-white/10 text-white placeholder:text-white/50" : "border-line bg-surface text-fg"}`}
+          className={`h-12 w-full min-w-0 shrink-0 ${compact ? "" : "sm:w-auto sm:flex-1"} rounded-full border px-5 text-sm focus:outline-none focus:ring-2 focus:ring-leaf-500/40 ${dark ? "border-white/15 bg-white/10 text-white placeholder:text-white/50" : "border-line bg-surface text-fg"}`}
         />
         <Button type="submit" size="lg" loading={m.isPending}>Subscribe <ArrowRight className="size-4" /></Button>
       </div>

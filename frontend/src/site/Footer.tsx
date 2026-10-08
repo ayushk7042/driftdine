@@ -13,7 +13,7 @@ export function Footer() {
   const a = "text-white/65 transition hover:text-leaf-300";
 
   return (
-    <footer className="on-dark mt-24 bg-forest-950 text-white">
+    <footer className="on-dark mt-12 bg-forest-950 text-white">
       <div className="container-x pt-10"><AdSlot position="footer" /></div>
       <div className="container-x grid gap-12 py-16 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="space-y-6">

@@ -18,9 +18,9 @@ const Explore = lazy(() => import("@/pages/site/Explore"));
 const GalleryPage = lazy(() => import("@/pages/site/Gallery"));
 const ContactPage = lazy(() => import("@/pages/site/Contact"));
 const NewsletterPage = lazy(() => import("@/pages/site/NewsletterPage"));
-const About = lazy(() => import("@/pages/site/Static").then((m) => ({ default: m.About })));
-const Privacy = lazy(() => import("@/pages/site/Static").then((m) => ({ default: m.Privacy })));
-const Terms = lazy(() => import("@/pages/site/Static").then((m) => ({ default: m.Terms })));
+const About = lazy(() => import("@/pages/site/About"));
+const Privacy = lazy(() => import("@/pages/site/Privacy"));
+const Terms = lazy(() => import("@/pages/site/Terms"));
 const NotFound = lazy(() => import("@/pages/site/Static").then((m) => ({ default: m.NotFound })));
 
 const AdminApp = lazy(() => import("@/admin/AdminApp"));

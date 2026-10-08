@@ -52,7 +52,7 @@ const wrap = "mx-auto w-full max-w-[1800px] px-4 sm:px-6 lg:px-8 xl:px-12";
  * Photos here are ~3:2, so a 3:2 box shows them whole with no bars. Only an unusually
  * tall/wide picture falls back to "contain" over a blurred copy of itself.
  */
-function UncroppedPhoto({ a, className, width = 500, sizes }: { a: Article; className?: string; width?: number; sizes?: string }) {
+export function UncroppedPhoto({ a, className, width = 500, sizes }: { a: Article; className?: string; width?: number; sizes?: string }) {
   const fi = a.featuredImage?.url ? a.featuredImage : a.ogImage;
   const url = fi?.url;
   if (!url) return <div className={cn("hero-ground grid place-items-center", className)} aria-hidden><img src="/mark.webp" alt="" width={36} height={35} className="size-9 opacity-90" loading="lazy" /></div>;
