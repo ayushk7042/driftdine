@@ -1,0 +1,158 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "What to deploy"
+        type: choice
+        options: [both, backend, frontend]
+        default: both
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ───────────────────────── what changed ─────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.f.outputs.backend }}
+      frontend: ${{ steps.f.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            backend:
+              - 'admin.driftdine.com/**'
+              - 'deploy/backend.sh'
+              - 'deploy/_lib.sh'
+            frontend:
+              - 'frontend/**'
+              - 'deploy/frontend.sh'
+              - 'deploy/_lib.sh'
+
+  # ───────────────────────── CI: frontend ─────────────────────────
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npx vite build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://admin.driftdine.com/api' }}
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL || 'https://driftdine.com' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+          if-no-files-found: error
+
+  # ───────────────────────── CI: backend ─────────────────────────
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin.driftdine.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: admin.driftdine.com/package-lock.json
+      - run: npm ci --omit=dev --no-audit --no-fund
+      - name: Syntax check entry points
+        run: node --check server.js && node --check create-admin.js && for f in jobs/*.js; do node --check "$f"; done
+      - name: App loads (routes, models, middleware)
+        run: node -e "require('./app'); console.log('app.js loaded OK'); process.exit(0)"
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-only-secret
+
+  # ───────────────────────── CD ─────────────────────────
+  # Deploys only when the repository variable DEPLOY_ENABLED is "true",
+  # so merging this file can never push to the server by accident.
+  deploy:
+    needs: [changes, frontend, backend]
+    if: >-
+      github.event_name != 'pull_request' &&
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide what to deploy
+        id: plan
+        run: |
+          t="${{ github.event.inputs.target }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            [ "$t" = "both" ] || [ "$t" = "backend" ]  && echo "backend=true"  >> "$GITHUB_OUTPUT" || echo "backend=false"  >> "$GITHUB_OUTPUT"
+            [ "$t" = "both" ] || [ "$t" = "frontend" ] && echo "frontend=true" >> "$GITHUB_OUTPUT" || echo "frontend=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=${{ needs.changes.outputs.backend }}"   >> "$GITHUB_OUTPUT"
+            echo "frontend=${{ needs.changes.outputs.frontend }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          umask 077
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          test -s ~/.ssh/deploy_key   || { echo "::error::Secret SSH_PRIVATE_KEY is empty"; exit 1; }
+          test -s ~/.ssh/known_hosts  || { echo "::error::Secret SSH_KNOWN_HOSTS is empty"; exit 1; }
+
+      - name: Deploy backend
+        if: steps.plan.outputs.backend == 'true'
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
+        run: |
+          export SSH_KEY_FILE=~/.ssh/deploy_key SSH_KNOWN_HOSTS_FILE=~/.ssh/known_hosts
+          ./deploy/backend.sh
+
+      - name: Download frontend build
+        if: steps.plan.outputs.frontend == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Deploy frontend
+        if: steps.plan.outputs.frontend == 'true'
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          export SSH_KEY_FILE=~/.ssh/deploy_key SSH_KNOWN_HOSTS_FILE=~/.ssh/known_hosts
+          ./deploy/frontend.sh
+
+      - name: Clean up key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
